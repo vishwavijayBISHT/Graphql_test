@@ -1,68 +1,54 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { graphqlHTTP } = require("express-graphql");
-const { buildSchema } = require("graphql");
 
+const mongoose = require("mongoose");
+const graphqlSchema = require("./graphql/schema/index");
+const graphqlResolvers = require("./graphql/resolvers/index");
+const isAuth = require("./middleware/isAuth");
+const { addPath } = require("graphql/jsutils/Path");
 const app = express();
 
-const events = [];
-
 app.use(bodyParser.json());
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Method", "POST,GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+app.use(isAuth);
+
 app.use(
   "/graphql",
   graphqlHTTP({
-    schema: buildSchema(`
-    type Event{
-        _id:ID!
-        title:String!
-        description:String!
-        price:Float!
-        date:String!
-    }
-    input EventInput{
-        title:String!
-        description:String!
-        price:Float!
-        date:String!
-    }
-    type RootQuery{
-        events: [Event!]!
+    schema: graphqlSchema,
+    rootValue: graphqlResolvers,
 
-    }
-    type RootMutation{
-        createEvent(eventInput:EventInput):Event
-
-    }
-     schema{
-         query:RootQuery
-         mutation:RootMutation
-     }
-    `),
-    rootValue: {
-      events: () => {
-        return events;
-      },
-      createEvent: (args) => {
-        const event = {
-          _id: "4dfs351f132ds1f3sd14fsd4f",
-          title: args.eventInput.title,
-          description: args.eventInput.description,
-          price: +args.eventInput.price,
-          date: args.eventInput.date,
-        };
-        events.push(event);
-        return event;
-      },
-    },
     graphiql: true,
   })
 );
+mongoose
+  .connect(
+    `mongodb+srv://vishwavijay:${process.env.MONGO_PASSWORD}@cluster0.lqwda.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`,
+    { useNewUrlParser: true, useUnifiedTopology: true }
+  )
+  .then(() => {
+    console.log("connected");
+    app.listen(8000);
+  })
+  .catch((err) => {
+    console.log(err);
+  });
 
-app.listen(3000);
 // mutation{
-//   createEvent(eventInput:{title:"a tale",description:"does this work may be",price:555.1,date:"gsjdb"}){
+//   createEvent(eventInput:{title:"a tale",description:"first try",price:55.5,date:"2020-12-25T12:59:59.347Z"}){
 //     title
-//     description
 //   }
+// }
 
 // }
+// mSzXOLT4TrXYfxCe;
+// vishwavijay;
